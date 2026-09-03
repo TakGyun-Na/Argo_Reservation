@@ -253,6 +253,29 @@
     color:#FBF7EF;
   }
   .modal-btn.solid:hover{background:var(--accent-dark);}
+
+  .backup-footer{
+    max-width:680px;
+    margin:14px auto 0;
+    padding:0 4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .backup-footer .sep{color:var(--rule);}
+  .backup-footer button{
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:12px;
+    font-weight:600;
+    text-decoration:underline;
+    cursor:pointer;
+    padding:0;
+  }
+  .backup-footer button:hover{color:var(--ink);}
   .time-row{display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:end;}
   .time-sep{padding-bottom:10px; color:var(--text-muted); font-size:13px;}
 
@@ -696,6 +719,14 @@
       <div id="ledger-list"></div>
     </div>
   </div>
+
+  <div class="backup-footer">
+    <span>데이터 백업</span>
+    <button type="button" id="export-btn">내보내기</button>
+    <span class="sep">·</span>
+    <button type="button" id="import-btn">가져오기</button>
+    <input type="file" id="import-file" accept="application/json,.json" hidden>
+  </div>
 </div>
 
 <script>
@@ -797,6 +828,60 @@ async function saveReservations(){
     return false;
   }
 }
+
+// --- 데이터 백업(내보내기/가져오기) ---
+function exportData(){
+  const blob = new Blob([JSON.stringify(reservations, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `아르고예약대장-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importDataFromFile(file){
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    let imported;
+    try{
+      imported = JSON.parse(e.target.result);
+      if(!Array.isArray(imported)) throw new Error('형식 오류');
+    }catch(err){
+      alert('파일을 읽을 수 없습니다. 올바른 예약 대장 백업 파일(.json)인지 확인해 주세요.');
+      return;
+    }
+    const doReplace = confirm(
+      `백업 파일에서 예약 ${imported.length}건을 찾았습니다.\n\n확인(OK): 기존 데이터를 이 내용으로 덮어씁니다\n취소(Cancel): 기존 데이터에 추가로 합칩니다(중복 ID는 건너뜀)`
+    );
+    if(doReplace){
+      reservations = imported;
+    }else{
+      const existingIds = new Set(reservations.map(r=>r.id));
+      imported.forEach(r=>{ if(r && r.id && !existingIds.has(r.id)) reservations.push(r); });
+    }
+    const ok = await saveReservations();
+    if(ok){
+      renderCalendar();
+      if(document.getElementById('panel-search').classList.contains('active')) renderLedger();
+      alert('가져오기가 완료되었습니다.');
+    }else{
+      alert('저장 중 오류가 발생했습니다.');
+    }
+  };
+  reader.readAsText(file);
+}
+document.getElementById('export-btn').addEventListener('click', exportData);
+document.getElementById('import-btn').addEventListener('click', ()=>{
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) importDataFromFile(file);
+  e.target.value = '';
+});
 
 // --- 탭 전환 ---
 document.querySelectorAll('.tab-btn').forEach(btn=>{
