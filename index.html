@@ -495,6 +495,11 @@
   .day-chip.status-완료{background:var(--sage-bg); color:var(--sage);}
   .day-chip.status-취소{background:var(--cancel-bg); color:var(--cancel); text-decoration:line-through;}
   .day-more{font-size:10.5px; color:var(--text-muted);}
+  .day-dots{display:none; gap:3px; flex-wrap:wrap; align-items:center; margin-top:2px;}
+  .day-dot{width:6px; height:6px; border-radius:50%; background:var(--ochre); flex-shrink:0;}
+  .day-dot.status-완료{background:var(--sage);}
+  .day-dot.status-취소{background:var(--cancel);}
+  .day-dots .dot-more{font-size:9.5px; color:var(--text-muted); margin-left:1px;}
 
   .week-grid{
     display:grid;
@@ -537,7 +542,8 @@
   @media (max-width:520px){
     .day-cell{min-height:64px; padding:4px;}
     .day-chip{display:none;}
-    .day-cell .day-more{display:block;}
+    .day-cell .day-more{display:none;}
+    .day-dots{display:flex;}
     .week-grid{grid-template-columns:1fr; gap:8px;}
   }
 
@@ -1157,11 +1163,17 @@ function renderMonthView(){
     const rest = items.length - shown.length;
     const holidayName = getHolidayName(dateStr);
     const colorCls = dateColorClass(cellDate, dateStr);
+    const dotItems = items.slice(0,5);
+    const dotRest = items.length - dotItems.length;
     html += `<div class="day-cell ${isToday?'today':''}" data-date="${dateStr}">
       <div class="day-num ${colorCls}">${cellDate.getDate()}</div>
       ${holidayName ? `<div class="holiday-tag">${holidayName}</div>` : ''}
       ${shown.map(r=>`<div class="day-chip status-${r.status}" data-date="${dateStr}" data-chip="1">${r.start} ${escapeHtml(r.name)}</div>`).join('')}
       ${rest>0 ? `<div class="day-more" data-date="${dateStr}" data-chip="1">+${rest}건 더보기</div>` : ''}
+      ${items.length>0 ? `<div class="day-dots" data-date="${dateStr}" data-chip="1">
+        ${dotItems.map(r=>`<span class="day-dot status-${r.status}"></span>`).join('')}
+        ${dotRest>0 ? `<span class="dot-more">+${dotRest}</span>` : ''}
+      </div>` : ''}
     </div>`;
   }
   html += `</div>`;
