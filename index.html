@@ -550,8 +550,7 @@
     border-bottom:1px solid var(--rule);
     cursor:pointer;
   }
-  .week-col-hd .wd{font-size:11px; color:var(--text-muted); font-weight:600;}
-  .week-col-hd .dn{font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px;}
+  .week-col-hd .dn{font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;}
   .week-col-hd .dn.dnum-red{color:var(--accent);}
   .week-col-hd .dn.dnum-blue{color:var(--sat-blue);}
   .week-col-hd .holiday-tag{margin-top:1px;}
@@ -741,12 +740,13 @@
 <script>
 /*
   아르고 예약 대장 - 버전 기록
+  v1.2 (2026-09-03) - 주별 화면 날짜 표기를 "8.30(일)" 형식으로 변경
   v1.1 (2026-09-03) - 버전 표시 추가
   v1.0 - 캘린더(월별/주별), 예약 입력/수정/삭제, 일자별 조회,
          중복예약 확인, 공휴일 표시, 데이터 백업(내보내기/가져오기),
          Firestore 실시간 동기화
 */
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 
 // --- Firebase / Firestore 초기화 ---
 const firebaseConfig = {
@@ -1350,8 +1350,7 @@ function renderWeekView(){
 
     html += `<div class="week-col ${isToday?'today':''}">
       <div class="week-col-hd" data-date="${dateStr}">
-        <div class="wd">${WEEKDAY_LABELS[d.getDay()]}</div>
-        <div class="dn ${colorCls}">${d.getDate()}</div>
+        <div class="dn ${colorCls}">${d.getMonth()+1}.${pad(d.getDate())}(${WEEKDAY_LABELS[d.getDay()]})</div>
         ${holidayName ? `<div class="holiday-tag">${holidayName}</div>` : ''}
       </div>
       <div class="week-col-body" data-date="${dateStr}">
