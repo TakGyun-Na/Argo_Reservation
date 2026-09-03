@@ -6,6 +6,8 @@
 <title>아르고 예약 대장</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --paper:#F1EEE3;
@@ -730,7 +732,19 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'reservations-data';
+// --- Firebase / Firestore 초기화 ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAFEulxSttgtqQbV6dFJ24t2SxQo1tvlwE",
+  authDomain: "argo-reservation.firebaseapp.com",
+  projectId: "argo-reservation",
+  storageBucket: "argo-reservation.firebasestorage.app",
+  messagingSenderId: "296873980132",
+  appId: "1:296873980132:web:c3d95f78aec123670efcf1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const reservationsDocRef = db.collection('argo').doc('reservations');
+
 const OPEN_TIME = '09:00';
 const CLOSE_TIME = '19:00';
 const MENU_DURATION = { '남성컷':30, '여성컷':30, '펌':60, '컬러':60, '클리닉':60 };
@@ -811,17 +825,40 @@ function fmtDateLabel(dateStr){
   return `${y}. ${pad(m)}. ${pad(d)} (${days[dt.getDay()]})${holiday ? ' · '+holiday : ''}`;
 }
 
-async function loadReservations(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    reservations = raw ? JSON.parse(raw) : [];
-  }catch(e){
-    reservations = [];
-  }
+function renderActivePanel(){
+  const activeBtn = document.querySelector('.tab-btn.active');
+  const tab = activeBtn ? activeBtn.dataset.tab : null;
+  if(tab === 'calendar') renderCalendar();
+  else if(tab === 'search') renderLedger();
+}
+
+// --- Firestore 실시간 동기화 ---
+// 최초 1회는 초기 데이터 로딩을 기다렸다가 화면을 그리고,
+// 이후로는 다른 기기에서 바뀐 내용이 오면 자동으로 다시 그립니다.
+function loadReservations(){
+  return new Promise((resolve)=>{
+    let firstLoad = true;
+    reservationsDocRef.onSnapshot((doc)=>{
+      const data = doc.exists ? doc.data() : null;
+      reservations = (data && Array.isArray(data.list)) ? data.list : [];
+      if(firstLoad){
+        firstLoad = false;
+        resolve();
+      }else{
+        renderActivePanel();
+      }
+    }, (err)=>{
+      console.error('실시간 동기화 오류', err);
+      if(firstLoad){ firstLoad = false; resolve(); }
+    });
+  });
 }
 async function saveReservations(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+    await reservationsDocRef.set({
+      list: reservations,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
     return true;
   }catch(e){
     console.error('저장 실패', e);
