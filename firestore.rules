@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 예약 데이터가 저장되는 문서 하나만 읽기/쓰기 허용
+    match /argo/reservations {
+      allow read, write: if true;
+    }
+    // 그 외 모든 경로는 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
